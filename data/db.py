@@ -74,3 +74,60 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     with app.app_context():
         init_db()
+
+# ---------------------------------------------------------------------------
+# Trips
+# ---------------------------------------------------------------------------
+
+def add_trip(name, home_currency, budget, start_date, end_date):
+    """Save a new trip and return its new id."""
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO trips (name, home_currency, budget, start_date, end_date) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (name, home_currency, budget, start_date, end_date),
+    )
+    db.commit()
+    return cursor.lastrowid
+
+
+def get_trip(trip_id):
+    """Return one trip, or None if no trip has that id."""
+    return get_db().execute(
+        "SELECT * FROM trips WHERE id = ?", (trip_id,)
+    ).fetchone()
+
+
+def list_trips():
+    """Return all trips, soonest start date first."""
+    return get_db().execute(
+        "SELECT * FROM trips ORDER BY start_date, id"
+    ).fetchall()
+
+
+# ---------------------------------------------------------------------------
+# Expenses
+# ---------------------------------------------------------------------------
+
+def add_expense(trip_id, amount, currency, rate, converted_amount,
+                category, expense_date, used_cached_rate=False):
+    """Save a new expense for a trip and return its new id."""
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO expenses (trip_id, amount, currency, rate, converted_amount, "
+        "category, expense_date, used_cached_rate) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (trip_id, amount, currency, rate, converted_amount,
+         category, expense_date, int(used_cached_rate)),
+    )
+    db.commit()
+    return cursor.lastrowid
+
+
+def list_expenses(trip_id):
+    """Return a trip's expenses, newest date first."""
+    return get_db().execute(
+        "SELECT * FROM expenses WHERE trip_id = ? "
+        "ORDER BY expense_date DESC, id DESC",
+        (trip_id,),
+    ).fetchall()
